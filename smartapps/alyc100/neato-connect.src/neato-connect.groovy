@@ -13,7 +13,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  VERSION HISTORY
- *  17-01-2017: 1.2 BETA - Individual SmartSchedule for each Botvac. (Loses SmartSchedule from earlier versions).
+ *  24-01-2017: 1.2 BETA - Individual SmartSchedule for each Botvac. (Loses SmartSchedule from earlier versions).
  *
  *  17-01-2017: 1.1.7b - Clean up display and formatting for multiple Botvacs.
  *  12-01-2017: 1.1.7 - Add authentication scope for Maps. Added reauthentication option.
