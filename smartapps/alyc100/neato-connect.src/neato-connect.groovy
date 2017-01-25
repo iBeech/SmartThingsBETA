@@ -13,7 +13,8 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  VERSION HISTORY
- *  24-01-2017: 1.2 BETA - Individual SmartSchedule for each Botvac. (Loses SmartSchedule from earlier versions).
+ *  25-01-2017: 1.2 BETA Release 1b - Minor fix to SmartSchedule menus.
+ *  24-01-2017: 1.2 BETA Release 1 - Individual SmartSchedule for each Botvac. (Loses SmartSchedule from earlier versions).
  *
  *  17-01-2017: 1.1.7b - Clean up display and formatting for multiple Botvacs.
  *  12-01-2017: 1.1.7 - Add authentication scope for Maps. Added reauthentication option.
@@ -114,6 +115,7 @@ def authPage() {
         
         dynamicPage(name: "auth", uninstall: false, install: false) {
         	section { headerSECTION() }
+            
 			section ("Choose your Neato Botvacs:") {
 				href("selectDevicePAGE", title: null, description: devicesSelected() ? "Devices:" + getDevicesSelectedString() : "Tap to select your Neato Botvacs", state: devicesSelected())
         	}
@@ -121,7 +123,7 @@ def authPage() {
            		section ("SmartSchedule Configuration:") {
 					if (selectedBotvacs.size() > 0) {
                 		selectedBotvacs.each() {
-                            //Migrate settings from v1.1 and earlier to v1.2
+                            //Migrate settings from v1.1 and earlier to v1.1.1
         					if (settings["smartScheduleEnabled#$it"] && settings["ssScheduleTrigger#$it"] == null) {
         						settings["ssScheduleTrigger#$it"] = "mode"
         					}
@@ -185,10 +187,12 @@ def smartSchedulePAGE(params) {
                 	input ("ssCleaningInterval#$botvacId", "number", title: "Set your ideal cleaning interval in days", required: true, defaultValue: 3)
                     
                     //Define smart schedule trigger
-                    input(name: "ssScheduleTrigger#$botvacId", title: "How do you want to trigger the schedule?", description: null, multiple: false, required: true, submitOnChange: true, type: "enum", options: ["mode": "Away Modes", "switch": "Switches", "presence": "Presence", "none": "No Triggers"], defaultValue: "mode")
+                    input("ssScheduleTrigger#$botvacId", "enum", title: "How do you want to trigger the schedule?",  multiple: false, required: true, submitOnChange: true, options: ["mode": "Away Modes", "switch": "Switches", "presence": "Presence", "none": "No Triggers"])
         
                     //Define your away modes
-                    if ((!settings.containsKey("ssScheduleTrigger#$botvacId")) || (settings["ssScheduleTrigger#$botvacId"] == "mode")) { input ("ssAwayModes#$botvacId", "mode", title:"Specify your away modes:", multiple: true, required: true) }
+                    if (settings["ssScheduleTrigger#$botvacId"] == "mode") { 
+                    	input ("ssAwayModes#$botvacId", "mode", title:"Specify your away modes:", multiple: true, required: true) 
+                    }
                     if (settings["ssScheduleTrigger#$botvacId"] == "switch") { 
                     	input ("ssSwitchTrigger#$botvacId", "capability.switch", title:"Which switches?", multiple: true, required: true) 
                         input ("ssSwitchTriggerCondition#$botvacId", "enum", title:"Trigger schedule when:", multiple: false, required: true, options: ["any": "Any switch turns on", "all": "All switches are on"], defaultValue: "any") 
@@ -265,14 +269,14 @@ def preferencesPAGE() {
         section("Force Clean"){
         	paragraph "If Botvac has been inactive for a number of days specified, then force a clean."
         	input "forceClean", "bool", title: "Force clean after elapsed time?", required: false, defaultValue: false, submitOnChange: true
-            if (forceClean) {
+            if (forceClean != false) {
         		input ("forceCleanDelay", "number", title: "Number of days before force clean (in days)", required: false, defaultValue: 7)
             }
         }
         section("Auto Dock") {
         	paragraph "When Botvac is paused, automatically send to base after a specified number of seconds."
 			input "autoDock", "bool", title: "Auto dock Botvac after pause?", required: false, defaultValue: true, submitOnChange: true
-            if (autoDock) {
+            if (autoDock != false) {
             	input ("autoDockDelay", "number", title: "Auto dock delay after pause (in seconds)", required: false, defaultValue: 60)
             }
 		}
