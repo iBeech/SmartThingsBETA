@@ -5,7 +5,7 @@
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
- *
+ 
  *      http://www.apache.org/licenses/LICENSE-2.0
  *
  *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
@@ -13,6 +13,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  VERSION HISTORY
+ *  27-01-2017: 1.2 BETA Release 2 - Fix to scheduler.
  *  25-01-2017: 1.2 BETA Release 1b - Minor fix to SmartSchedule menus.
  *  24-01-2017: 1.2 BETA Release 1 - Individual SmartSchedule for each Botvac. (Loses SmartSchedule from earlier versions).
  *
@@ -516,7 +517,7 @@ def initialize() {
     if (state.botvacOnTimeMarker == null) {
     	state.botvacOnTimeMarker = [:]
     }
-    state.taskStartTimes = []
+    state.remove("taskStartTimes")
     if (selectedBotvacs) addBotvacs()
     
     getChildDevices().each { childDevice -> 	
@@ -530,11 +531,6 @@ def initialize() {
         	else if (settings["ssScheduleTrigger#$botvacId"] == "switch") { subscribe(settings["ssSwitchTrigger#$botvacId"], "switch.on", smartScheduleHandler, [filterEvents: false]) }
         	else if (settings["ssScheduleTrigger#$botvacId"] == "presence") { subscribe(settings["ssPeopleAway#$botvacId"], "presence", smartScheduleHandler, [filterEvents: false]) }
             
-            if (settings["starting#$botvacId"]) {
-                state.taskStartTimes.add(adjustTimeforTimeZone(settings["starting#$botvacId"]))
-            } else {
-            	state.taskStartTimes.add(timeToday("00:01", location.timeZone))
-            }
         	subscribe(settings["ssOverrideSwitch#$botvacId"], "switch.on", smartScheduleHandler, [filterEvents: false])
     	}
     
@@ -567,7 +563,7 @@ def initialize() {
         }
         childDevice.poll()
     }
-    runIn(getNextTimeInSeconds(), smartScheduleHandler)
+    runIn(getNextTimeInSeconds(), timeHandler)
     runEvery5Minutes('pollOn') // Asynchronously refresh devices so we don't block
 }
 
@@ -874,14 +870,18 @@ def eventHandler(evt) {
 	}
 }
 
+def timeHandler(evt) {
+	smartScheduleHandler(evt)
+}
+
 def smartScheduleHandler(evt) {
 	if (evt != null) {
 		log.debug "Executing 'smartScheduleHandler' for ${evt.displayName}"
     } else {
     	log.debug "Executing 'smartScheduleHandler' for scheduled event"
-        //Reschedule next event.
-        runIn(getNextTimeInSeconds(), smartScheduleHandler)
     }
+    //Update scheduler
+    runIn(getNextTimeInSeconds(), timeHandler)
     getChildDevices().each { childDevice ->
     	def botvacId = childDevice.deviceNetworkId
     	//If switch on for override event
@@ -1129,8 +1129,15 @@ def adjustTimeforTimeZone(originalTime) {
 
 def getNextTimeInSeconds() {
 	def nextTime = null
-    for (time in state.taskStartTimes) {
-    	def t = timeTodayAfter(new Date(), time.format("HH:mm", location.timeZone), location.timeZone)
+    getChildDevices().each { childDevice ->
+    	def time
+        def botvacId = childDevice.deviceNetworkId
+    	if (settings["starting#$botvacId"]) {
+        	time = adjustTimeforTimeZone(settings["starting#$botvacId"])
+        } else {
+        	time = timeToday("00:01", location.timeZone)
+        }
+    	def t = timeTodayAfter(new Date(), time.format("HH:mm", getTimeZone()), getTimeZone())
 		if (nextTime) {
         	nextTime = (nextTime > t.getTime()) ? t.getTime() : nextTime
         } else {
@@ -1262,7 +1269,7 @@ def getApiEndpoint()         { return "https://apps.neatorobotics.com" }
 def getSmartThingsClientId() { return appSettings.clientId }
 def beehiveURL(path = '/') 	 { return "https://beehive.neatocloud.com${path}" }
 private def textVersion() {
-    def text = "Neato (Connect)\nVersion: 1.2 BETA\nDate: 24012017(0030)"
+    def text = "Neato (Connect)\nVersion: 1.2 BETA Release 2\nDate: 27012017(1000)"
 }
 
 private def textCopyright() {
